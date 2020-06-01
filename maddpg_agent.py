@@ -11,8 +11,8 @@ import random
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # device = 'cpu'
 
-GAMMA = 0.95                # discount factor
-TAU = 0.02                  # soft update parameter
+GAMMA = 0.99                # discount factor
+TAU = 0.001                 # soft update parameter
 LR_ACTOR = 1e-4             # learning rate for updating actor
 LR_CRITIC = 1e-3            # learning rate for updating critic
 WEIGHT_DECAY = 0.0          # weight decay
@@ -41,7 +41,7 @@ class MADDPG:
         self.batch_size = batch_size
 
         self.agents = [DDPGAgent(state_size, action_size, hidden_layers, gamma, \
-                                 lr_actor, lr_critic, weight_decay) \
+                                 tau, lr_actor, lr_critic, weight_decay, seed) \
                                      for _ in range(num_agents)]
 
         self.replay_buffer = ReplayBuffer(num_agents, buffer_size, batch_size)
@@ -56,13 +56,18 @@ class MADDPG:
         """One step for MADDPG agent, include store the current transition and update parameters."""
         self.replay_buffer.add(states, actions, rewards, next_states, dones)
 
-        if len(self.replay_buffer) > self.buffer_size:
+        if len(self.replay_buffer) > self.batch_size:
+            '''
             experiences = self.replay_buffer.sample()
-            _, _, _, next_states_list, _ = experiences
-            next_actions_list = [self.agents[idx].target_actor(states) \
-                for idx, states in enumerate(next_states_list)]
+            states_list, _, _, _, _ = experiences
+            next_actions_list = [self.agents[idx].target_actor(states).detach() \
+                for idx, states in enumerate(states_list)]
             for i in range(self.num_agents):
                 self.agents[i].step_learn(experiences, next_actions_list, i)
+            '''
+            for agent in self.agents:
+                experiences = self.replay_buffer.sample()
+                agent.step_learn(experiences)
 
     def save_weights(self):
         for index, agent in enumerate(self.agents):

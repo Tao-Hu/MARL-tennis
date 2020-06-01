@@ -10,13 +10,9 @@ def hidden_init(layer):
 
 class Network(nn.Module):
     def __init__(self, input_dim, hidden_in_dim, hidden_out_dim, 
-                 output_dim, actor=False):
+                 output_dim, seed, actor=False):
         super(Network, self).__init__()
-
-        """self.input_norm = nn.BatchNorm1d(input_dim)
-        self.input_norm.weight.data.fill_(1)
-        self.input_norm.bias.data.fill_(0)"""
-
+        self.seed = torch.manual_seed(seed)
         self.fc1 = nn.Linear(input_dim,hidden_in_dim)
         self.fc2 = nn.Linear(hidden_in_dim,hidden_out_dim)
         self.fc3 = nn.Linear(hidden_out_dim,output_dim)
@@ -27,9 +23,13 @@ class Network(nn.Module):
     def reset_parameters(self):
         self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
-        self.fc3.weight.data.uniform_(-1e-3, 1e-3)
+        self.fc3.weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state, action = None):
+        '''
+        if state.dim() == 1:
+                state = torch.unsqueeze(state,0)
+        '''
         if self.actor:
             # return a vector of the force
             h1 = self.nonlin(self.fc1(state))
